@@ -1,22 +1,38 @@
 import json
 import os
-import pandas as pd
-import h5py
+import numpy as np
+# import pandas as pd
+# import h5py
 from urllib.request import urlopen
 
 def get_data(coin_pair):
     if os.path.exists("data.json"):
-        # megnyit
         with open("data.json") as data_file:
             data = json.load(data_file)
     else:
-        # letölt elment
         with open('data.json', 'w+') as outfile:
-            url = "https://poloniex.com/public?command=returnChartData&currencyPair=" +coin_pair+ "&start=1356998100&end=9999999999&period=300"
-            r = openUrl.read() # itt még fos
-            openUrl.close()
-            data = json.loads(r.decode())
+            url = "https://poloniex.com/public?command=returnChartData&currencyPair=" +coin_pair+ "&start=1490054400&end=9999999999&period=1800"
+            r = urlopen(url)
+            data = json.loads(r.read().decode(encoding='UTF-8'))
             json.dump(data, outfile)
-    return None
+    return data
 
-get_data("USDT_ETH")
+
+def get_close_prices(pair):
+    full_data = get_data(pair)
+    time_cprice_list = []
+    last = 0
+    for i in full_data:
+        time = i["date"]
+        # not the nicest one
+        if time < last:
+            print("ORDER FAILURE")
+            break
+        # end of the not the nicest one
+        close = i["close"]
+        time_cprice_list.append([time, close])
+        last = time
+    return np.asarray(time_cprice_list)
+
+# time_cprice = get_close_prices("USDT_ETH")
+# print(time_cprice[10000])
