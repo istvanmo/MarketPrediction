@@ -4,17 +4,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tflearn
 from DataDownload import get_close_prices
+from time import sleep
 
 # create train and validation data
 
-seq_len = 30
-training_points_num = 10000
-validation_points_num = 500
+seq_len = 20
+training_points_num = 3000
+validation_points_num = 200
 validation_fraction = 0.08
 
-time_cprice_data = get_close_prices("USDT_ETH")
+time_cprice_data = get_close_prices("USDT_ETH", "7200")
 transposed_data = time_cprice_data.T
 cprice_data = transposed_data[1]
+print(len(cprice_data))
+sleep(3)
 time_data = transposed_data[0]
 
 random_low_train = seq_len + 1
@@ -66,7 +69,7 @@ net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rat
 # run training
 
 model = tflearn.DNN(net, tensorboard_verbose=2)
-model.fit(x_train, y_train, n_epoch=200, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
+model.fit(x_train, y_train, n_epoch=100, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
 
 # backtest
 
