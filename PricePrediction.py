@@ -4,13 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tflearn
 from DataDownload import get_close_prices
-from time import sleep
 
 # create train and validation data
 
 seq_len = 30
 training_points_num = 10000
-validation_points_num = 10
+validation_points_num = 500
 validation_fraction = 0.08
 
 time_cprice_data = get_close_prices("USDT_ETH")
@@ -45,8 +44,6 @@ y_test = np.asarray(y_test)
 
 # max_value = np.max([np.max(x_train), np.max(y_train), np.max(x_test), np.max(y_test)])
 max_value = np.max(cprice_data)
-print(max_value)
-sleep(1)
 
 x_train = x_train / max_value
 y_train = y_train / max_value
@@ -69,7 +66,7 @@ net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rat
 # run training
 
 model = tflearn.DNN(net, tensorboard_verbose=2)
-model.fit(x_train, y_train, n_epoch=100, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
+model.fit(x_train, y_train, n_epoch=200, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
 
 # backtest
 
@@ -92,6 +89,20 @@ pred_price = model.predict(x_backtest)
 
 # plot the predicted against true data
 timestamp_data = time_data[-len(y_backtest):]
-plt.plot(timestamp_data, y_backtest)
-plt.plot(timestamp_data, pred_price)
+y_bt_upscaled = y_backtest * max_value
+y_pp_upscaled = pred_price * max_value
+reshaped_y_pp_upscaled = np.ravel(y_pp_upscaled)
+diff = y_bt_upscaled - reshaped_y_pp_upscaled
+
+print("Max of differences: ", np.max(np.abs(diff)))
+print("Mean of differences: ", np.mean(diff))
+print("Median of differences: ", np.median(diff))
+
+plt.subplot(121)
+plt.gca().set_title("Real prices(blue) - Predicted prices(orange)")
+plt.plot(timestamp_data, y_bt_upscaled)
+plt.plot(timestamp_data, reshaped_y_pp_upscaled)
+plt.subplot(122)
+plt.gca().set_title("Differences between the real and the predicted prices")
+plt.plot(timestamp_data, diff)
 plt.show()
