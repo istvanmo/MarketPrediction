@@ -10,18 +10,19 @@ from time import sleep
 
 seq_len = 30
 training_points_num = 10000
-validation_points_num = 1000
+validation_points_num = 10
 validation_fraction = 0.08
 
 time_cprice_data = get_close_prices("USDT_ETH")
 transposed_data = time_cprice_data.T
 cprice_data = transposed_data[1]
+time_data = transposed_data[0]
 
 random_low_train = seq_len + 1
 random_high_train = int(len(cprice_data) - (len(cprice_data) * validation_fraction))
 x_train = []
 y_train = []
-for i in range(training_points_num):
+for _ in range(training_points_num):
     time = np.random.randint(random_low_train, random_high_train)
     low_time = time-seq_len
     x_train.append(cprice_data[low_time: time])
@@ -31,7 +32,7 @@ random_low_test = int(len(cprice_data) - (len(cprice_data) * validation_fraction
 random_high_test = len(cprice_data)
 x_test = []
 y_test = []
-for i in range(validation_points_num):
+for _ in range(validation_points_num):
     time = np.random.randint(random_low_test, random_high_test)
     low_time = time - seq_len
     x_test.append(cprice_data[low_time: time])
@@ -42,9 +43,10 @@ y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
-max_value = np.max([np.max(x_train), np.max(y_train), np.max(x_test), np.max(y_test)])
+# max_value = np.max([np.max(x_train), np.max(y_train), np.max(x_test), np.max(y_test)])
+max_value = np.max(cprice_data)
 print(max_value)
-sleep(5)
+sleep(1)
 
 x_train = x_train / max_value
 y_train = y_train / max_value
@@ -67,4 +69,29 @@ net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rat
 # run training
 
 model = tflearn.DNN(net, tensorboard_verbose=2)
-model.fit(x_train, y_train, n_epoch=1, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
+model.fit(x_train, y_train, n_epoch=100, validation_set=(x_test, y_test), batch_size=50, show_metric=True)
+
+# backtest
+
+# create backtest dataset
+x_backtest = []
+y_backtest = []
+for time in range(random_low_test, random_high_test):
+    low_time = time - seq_len
+    x_backtest.append(cprice_data[low_time: time])
+    y_backtest.append(cprice_data[time])
+
+x_backtest = np.asarray(x_backtest)
+y_backtest = np.asarray(y_backtest)
+x_backtest = x_backtest / max_value
+y_backtest = y_backtest / max_value
+x_backtest = np.reshape(x_backtest, (-1, 1, seq_len))
+
+# run backtest
+pred_price = model.predict(x_backtest)
+
+# plot the predicted against true data
+timestamp_data = time_data[-len(y_backtest):]
+plt.plot(timestamp_data, y_backtest)
+plt.plot(timestamp_data, pred_price)
+plt.show()
