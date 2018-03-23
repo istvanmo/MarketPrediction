@@ -33,6 +33,3 @@ def get_close_prices(pair, period):
         time_cprice_list.append([time, close])
         last = time
     return np.asarray(time_cprice_list)
-
-# time_cprice = get_close_prices("USDT_ETH")
-# print(time_cprice[10000])
