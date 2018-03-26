@@ -13,7 +13,7 @@ training_points_num = 3000
 validation_points_num = 200
 validation_fraction = 0.08
 
-time_cprice_data = get_close_prices("USDT_ETH", "300")
+time_cprice_data = get_close_prices("USDT_ETH", "14400")
 transposed_data = time_cprice_data.T
 cprice_data = transposed_data[1]
 print(len(cprice_data))
