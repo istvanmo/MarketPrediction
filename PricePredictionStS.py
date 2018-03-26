@@ -10,11 +10,11 @@ from time import sleep
 
 input_seq_len = 32
 output_seq_len = 6
-training_points_num = 2000
-validation_points_num = 150
+training_points_num = 10000
+validation_points_num = 600
 validation_fraction = 0.08
 
-time_cprice_data = get_close_prices("USDT_ETH", "14400")
+time_cprice_data = get_close_prices("USDT_ETH", "1800")
 transposed_data = time_cprice_data.T
 cprice_data = transposed_data[1]
 print(len(cprice_data))

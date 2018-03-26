@@ -8,15 +8,32 @@ from DataDownload import get_close_prices
 from time import sleep
 
 
-def OBV():
-    pass
+def OBV(c_p_d, v_d):
+    obv_list = []
+    data_len = len(c_p_d)
+    for i in range(data_len):
+        if i == 0:
+            obv_list.append(v_d[0])
+        else:
+            theta = 0
+            if c_p_d[i] - c_p_d[i-1] > 0:
+                theta = 1
+            elif c_p_d[i] - c_p_d[i-1] < 0:
+                theta = -1
 
-def MAn(c_p_d, n):
-    point_num = len(c_p_d)
+            obv_t = obv_list[i-1] + theta * v_d[i]
+            obv_list.append(obv_t)
+    return obv_list
 
-    pass
+def MA5(c_p_d):
+    ma5_list = []
+    data_len = len(c_p_d)
+    for i in range(5, data_len):
+        ma5_t = sum(c_p_d[i-5:i]) / 5
+        ma5_list.append(ma5_t)
+    return ma5_list
 
-def BIASn(n):
+def BIASn(max_len):
     pass
 
 def PSYn(n):
