@@ -31,4 +31,8 @@ def get_data():
                 row_cp = row.index("Close")
                 row_v = row.index("Volume")
                 i = True
+
+    close_prices.reverse()
+    volumes.reverse()
+    dates.reverse()
     return close_prices, volumes, dates

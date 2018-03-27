@@ -1,10 +1,11 @@
-from __future__ import division, print_function, absolute_import
+# from __future__ import division, print_function, absolute_import
 
 import numpy as np
 import matplotlib.pyplot as plt
 import tflearn
 # import tensorflow as tf
 from time import sleep
+from random import shuffle
 from GetIndexData import get_data
 
 def OBV(c_p_d, v_d):
@@ -59,7 +60,7 @@ def ASYn(c_p_d, n):
     ln_n_c = np.log(n_c_p_d)
     ret = ln_f_c - ln_n_c
     sy = ret * 100
-    for i in range(n, len(sy)):
+    for i in range(n, len(ln_f_c)):
         window = sy[i-n: i]
         asy = np.mean(window)
         asy_list.append(asy)
@@ -118,23 +119,35 @@ def train_test_data(cp, v, valid_rat):
     y_train = y_data[0: split_index]
     y_valid = y_data[split_index:]
 
-    return x_train, np.array(y_train, dtype=np.float64), x_valid, np.array(y_valid, dtype=np.float64)
+    # return x_train, np.array(y_train, dtype=np.float64), x_valid, np.array(y_valid, dtype=np.float64)
+    return x_train, y_train, x_valid, y_valid
+
+def randomize(a, b):
+    # Generate the permutation index array.
+    permutation = np.random.permutation(a.shape[0])
+    # Shuffle the arrays by giving the permutation in the square brackets.
+    shuffled_a = a[permutation]
+    shuffled_b = b[permutation]
+    return shuffled_a, shuffled_b
 
 cp, v, d = get_data()
 
-x_train, y_train, x_valid, y_valid = train_test_data(cp, v, 0.997)
-x_valid, y_valid = x_valid[0:5], y_valid[0:5]
+x_train, y_train, x_valid, y_valid = train_test_data(cp, v, 0.996)
+# x_valid, y_valid = x_valid[0:5], y_valid[0:5]
+x_train, y_train = randomize(x_train, y_train)
 
 net = tflearn.input_data(shape=[None, 1, 9])
-net = tflearn.fully_connected(net, 20, activation='leaky_relu')
-# net = tflearn.dropout(net, 0.7)
-net = tflearn.fully_connected(net, 1, activation='sigmoid')
-net = tflearn.regression(net, optimizer='adam', loss='binary_crossentropy', learning_rate=0.01, name="output1")
+fc_1 = tflearn.fully_connected(net, 10, activation='relu')  # , regularizer="L2")
+# net = tflearn.dropout(fc_1, 0.7)
+fc_2 = tflearn.fully_connected(fc_1, 1, activation='sigmoid')
+opt = tflearn.optimizers.Adam(learning_rate=0.01, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False, name='Adam')
+# opt = tflearn.optimizers.Momentum(learning_rate=0.1, momentum=0.4, lr_decay=0.0, decay_step=100, staircase=False, use_locking=False, name='Momentum')
+net = tflearn.regression(fc_2, optimizer=opt, loss='mean_square', batch_size=64, name="output1")
 
 # run training
 
 model = tflearn.DNN(net, tensorboard_verbose=2)
-model.fit(x_train, y_train, n_epoch=500, validation_set=(x_valid, y_valid), batch_size=2, show_metric=True)
+model.fit(x_train, y_train, n_epoch=200, validation_set=(x_valid, y_valid), batch_size=64, show_metric=True)
 
 pred_move = model.predict(x_valid)
 print(pred_move)
@@ -160,3 +173,9 @@ for re, ann in zip(y_backtest, pred_move):
 print(same_counter/len(pred_move))
 
 
+
+"""def mean_absolute(y_pred, y_true):
+    with tf.name_scope("MeanAbsoluteError"):
+        abs_diff = tf.abs(y_pred - y_true)
+        mae = tf.reduce_mean(abs_diff)
+    return mae"""
