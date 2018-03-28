@@ -6,33 +6,34 @@ def get_data():
     volumes = []
     dates = []
     with open('N225.csv', newline='') as csvfile:
-        sp500 = csv.reader(csvfile)
+        N225 = csv.reader(csvfile)
         i = False
         row_d = None
         row_cp = None
         row_v = None
-        for row in sp500:
+        n = []
+        for r in N225:
             if i:
-                dates.append(row[row_d])
-                if row[row_cp] in ["null"]:
-                    close_prices.append(close_prices[-1])
-                else:
-                    close_prices.append(float(row[row_cp]))
-
-                if row[row_v] in ["null"]:
-                    volumes.append(volumes[-1])
-                else:
-                    if float(row[row_v]) != 0:
-                        volumes.append(float(row[row_v]))
-                    else:
-                        volumes.append(volumes[-1])
+                n.append(r)
             else:
-                row_d = row.index("Date")
-                row_cp = row.index("Close")
-                row_v = row.index("Volume")
+                row_d = r.index("Date")
+                row_cp = r.index("Close")
+                row_v = r.index("Volume")
                 i = True
 
-    close_prices.reverse()
-    volumes.reverse()
-    dates.reverse()
+        for row in n:
+            dates.append(row[row_d])
+            if row[row_cp] in ["null"]:
+                close_prices.append(close_prices[-1])
+            else:
+                close_prices.append(float(row[row_cp]))
+
+            if row[row_v] in ["null"]:
+                volumes.append(volumes[-1])
+            else:
+                if float(row[row_v]) != 0:
+                    volumes.append(float(row[row_v]))
+                else:
+                    volumes.append(volumes[-1])
+
     return close_prices, volumes, dates
