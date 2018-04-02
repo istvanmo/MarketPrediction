@@ -81,6 +81,11 @@ def features_data(cp, v, valid_rat):
     y_data = np.array(y_data)
     y_data = y_data.reshape((-1, 1))
 
+    # az utolsó training pont kiszámolásához nem kell az utolsó price és volume érték
+    # mert az már nem t.p. mivel nincs hozzá y adat, mert az már a jövő
+    cp = cp[:-1]
+    v = v[:-1]
+
     obv = OBV(cp, v)
     ma5 = MAn(cp, 5)
     bias6 = BIAS6(cp)

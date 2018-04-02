@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tflearn
-# import tensorflow as tf
+import tensorflow as tf
 from time import sleep
 from GetTrainData import train_valid_data
 
@@ -26,6 +26,16 @@ class BP_ANN:
         self.model = tflearn.DNN(self.net, tensorboard_verbose=2)
 
         # TODO: extract the shapes of the variables
+
+        trainable_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        b = model.session.run(a)
+        shape_list = []
+        shape_len_list = []
+        for i in b:
+            i_shape_array = np.array(i.shape)
+            shape_len = np.prod(i_shape_array)
+            shape_len_list.append(shape_len)
+            shape_list.append(i.shape)
 
     def back_t_fit(self):
         pred_move = self.model.predict(self.x_valid)

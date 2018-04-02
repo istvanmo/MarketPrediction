@@ -1,10 +1,12 @@
 from __future__ import division, print_function, absolute_import
 
-import numpy as np
-import matplotlib.pyplot as plt
-import tflearn
-from DataDownload import get_close_prices
 from time import sleep
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tflearn
+
+from PricePrediction_old.DataDownload import get_close_prices
 
 # create train and validation data
 
