@@ -2,12 +2,12 @@ import numpy as np
 
 
 class GA:
-    def __init__(self, dna_size, pop_size, cross_rate, mutation_rate, n_generations):
+    def __init__(self, dna_size, pop_size, cross_rate, mutation_rate):
         self.dna_size = dna_size
         self.pop_size = pop_size
         self.cross_rate = cross_rate
         self.mutation_rate = mutation_rate
-        self.n_generation = n_generations
+        # self.n_generation = n_generations
         self.pop = np.random.uniform(-1, 1, size=(pop_size, dna_size))  # initialize the pop DNA
 
     def select(self, pop, fitness):    # nature selection wrt pop's fitness
