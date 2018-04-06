@@ -108,6 +108,8 @@ def features_data(cp, v, valid_rat):
     normalized_data = np.array(normalized_data)
     x_data = normalized_data.T
 
+    y_data = y_data[-min_len:]
+
     # split data
     split_index = int(len(x_data) * (1 - valid_rat))
     x_train = x_data[0: split_index]

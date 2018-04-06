@@ -1,10 +1,17 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import tflearn
 import tensorflow as tf
 from time import sleep
 from GetTrainData import train_valid_data
 
+
+class LossFitCallback(tflearn.callbacks.Callback):
+    def __init__(self):
+        self.fit_val = None
+
+    def on_train_end(self, training_state):
+        loss = training_state.global_loss
+        self.fit_val = 1 / loss
 
 class BP_ANN:
     def __init__(self, f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate):
@@ -16,19 +23,17 @@ class BP_ANN:
         self.n_epoch = n_epoch
         self.b_size = batch_size
         self.x_train, self.y_train, self.x_valid, self.y_valid, self.cp = train_valid_data(valid_rate)
-        print(len(self.x_valid))
-        print(len(self.y_valid))
 
         # bulid the tf graph
         self.net = tflearn.input_data(shape=[None, 1, 9])
-        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu', regularizer="L2")
-        # net = tflearn.dropout(net, 0.7)
+        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='tanh')
         self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid')
-        self.opt = tflearn.optimizers.Adam(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False,
+        self.opt = tflearn.optimizers.Adam(learning_rate=self.l_rate, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False,
                                       name='Adam')
-        # opt = tflearn.optimizers.Momentum(learning_rate=0.1, momentum=0.4, lr_decay=0.0, decay_step=100,staircase=False, use_locking=False, name='Momentum')
-        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output1")
-        self.model = tflearn.DNN(self.net, tensorboard_verbose=2)
+        # self.opt = tflearn.optimizers.Nesterov(learning_rate=self.l_rate, momentum=self.momentum, lr_decay=0.95, decay_step=100,
+        #                                       staircase=False, use_locking=False, name='Nesterov')
+        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")
+        self.model = tflearn.DNN(self.net, tensorboard_verbose=0)
 
         # extract the shapes of the variables
 
@@ -42,6 +47,23 @@ class BP_ANN:
             shape_len = np.prod(i_shape_array)
             self.shape_len_list.append(shape_len)
             self.shape_list.append(i.shape)
+
+        self.LFcb = LossFitCallback()
+
+    def create_assign_vector(self, p):
+        assign_vector = []
+        p_copy = p.copy()
+        for length, shape in zip(self.shape_len_list, self.shape_list):
+            p_chunk = p_copy[:length]
+            p_chunk.astype(np.float64)  # nem biztos hogy kell
+            p_copy = p_copy[length:]  # 0 hosszúságú vektort is visszaadja de nem baj elvileg
+            assign_vector.append(np.reshape(p_chunk, shape))
+        return assign_vector
+
+    def assign_params(self, dna):
+        v_l = tflearn.variables.get_all_trainable_variable()
+        for act_v, value in zip(v_l, dna):
+            tflearn.variables.set_value(act_v, value, session=self.model.session)
 
     def back_t_fit(self):
         pred_move = self.model.predict(self.x_valid)
@@ -61,45 +83,52 @@ class BP_ANN:
             dis = np.abs(re - ann)
             if dis < 0.5:
                 same_counter += 1
-        return same_counter
+        return same_counter / len(pred_move)
 
     def train_all(self, pop):
         fitness_values = []
+        dna_num = 0
         for p in pop:
-            assign_vector = []
-            p_copy = p.copy()
-            for length, shape in zip(self.shape_len_list, self.shape_list):
-                p_chunk = p[:length]
-                p_chunk.astype(np.float64) # nem biztos hogy kell
-                p_copy = p_copy[length:] # 0 hosszúságú vektort is visszaadja de nem baj elvileg
-                assign_vector.append(np.reshape(p_chunk, shape))
+            dna_num += 1
+            print("A populácio ennyiedik tagja: ", dna_num)
 
-            self.create_graph(assign_vector[0], assign_vector[1], assign_vector[2], assign_vector[3])
+            assign_vector = self.create_assign_vector(p)
+
+            self.assign_params(assign_vector)
+
+            # trainable_vars_op_b = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            # trainable_vars_b = self.model.session.run(trainable_vars_op_b)
+            # for i in trainable_vars_b:
+            #     print(i)
+            # sleep(2)
+            # print("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+
             self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-                           batch_size=self.b_size, show_metric=False)
-            fit = self.back_t_fit()
-            fitness_values.append(fit)
+                           batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+
+            # trainable_vars_op_b = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            # trainable_vars_b = self.model.session.run(trainable_vars_op_b)
+            # for i in trainable_vars_b:
+            #     print(i)
+            # sleep(2)
+            # print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
+            # fit = self.back_t_fit()
+            # fitness_values.append(fit)
+            fitness_values.append(self.LFcb.fit_val)
 
         return fitness_values
 
-    def create_graph(self, f_l_w, f_l_b, s_l_w, s_l_b):
-        init_f_l_w = tf.constant_initializer(f_l_w)
-        init_f_l_b = tf.constant_initializer(f_l_b)
-        init_s_l_w = tf.constant_initializer(s_l_w)
-        init_s_l_b = tf.constant_initializer(s_l_b)
-        # bulid the tf graph
-        self.net = tflearn.input_data(shape=[None, 1, 9])
-        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu', weights_init=init_f_l_w,
-                                           bias_init=init_f_l_b)
-        # net = tflearn.dropout(net, 0.7)
-        self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid', weights_init=init_s_l_w,
-                                           bias_init=init_s_l_b)
-        self.opt = tflearn.optimizers.Adam(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08,
-                                           use_locking=False,
-                                           name='Adam')
-        # opt = tflearn.optimizers.Momentum(learning_rate=0.1, momentum=0.4, lr_decay=0.0, decay_step=100,staircase=False, use_locking=False, name='Momentum')
-        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output1")
-        self.model = tflearn.DNN(self.net, tensorboard_verbose=2)
+    def train_one(self, indiv):
+        assign_vector = self.create_assign_vector(indiv)
+
+        self.assign_params(assign_vector)
+
+        self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
+                       batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+        # fitness_val = self.LFcb.fit_val
+        fitness_val = 1 / self.back_t_fit()
+        return fitness_val
 
 """def mean_absolute(y_pred, y_true):
     with tf.name_scope("MeanAbsoluteError"):
