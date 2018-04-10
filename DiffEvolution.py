@@ -32,7 +32,7 @@ l_rate = 0.0000001
 momentum = 0.4
 n_epoch = 1
 batch_size = 1024
-valid_rate = 0.2
+valid_rate = 0.99
 cost_func = func1  # Cost function
 dna_size = 9 * f_layer_num + f_layer_num + f_layer_num + 1
 
@@ -152,7 +152,7 @@ bounds = [(-1, 1)] * dna_size # Bounds [(x1_min, x1_max), (x2_min, x2_max),...]
 popsize = 64  # Population size, must be >= 4
 mutate = 0.5  # Mutation factor [0,2]
 recombination = 0.7  # Recombination rate [0,1]
-maxiter = 15  # Max number of generations (maxiter)
+maxiter = 150  # Max number of generations (maxiter)
 
 # --- RUN ----------------------------------------------------------------------+
 

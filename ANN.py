@@ -35,10 +35,16 @@ class BP_ANN:
         self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")
         self.model = tflearn.DNN(self.net, tensorboard_verbose=0)
 
-        # extract the shapes of the variables
+        # extract the shapes of the variables and create assign op-s
 
         trainable_vars_op = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         trainable_vars = self.model.session.run(trainable_vars_op)
+
+        self.assign_val_ph = tf.placeholder(shape=None, dtype=tf.float32)
+        self.assign_list = []
+        for t_v in trainable_vars_op:
+            self.assign_list.append(tf.assign(t_v, self.assign_val_ph))
+
         self.shape_list = []
         self.shape_len_list = []
 
@@ -61,6 +67,10 @@ class BP_ANN:
         return assign_vector
 
     def assign_params(self, dna):
+        for assign_op, val in zip(self.assign_list, dna):
+            self.model.session.run(assign_op, feed_dict={self.assign_val_ph: val})
+
+
         v_l = tflearn.variables.get_all_trainable_variable()
         for act_v, value in zip(v_l, dna):
             tflearn.variables.set_value(act_v, value, session=self.model.session)
@@ -124,8 +134,9 @@ class BP_ANN:
 
         self.assign_params(assign_vector)
 
-        self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-                       batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+        # self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
+        #                batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+
         # fitness_val = self.LFcb.fit_val
         fitness_val = 1 / self.back_t_fit()
         return fitness_val
