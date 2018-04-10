@@ -61,7 +61,7 @@ class BP_ANN:
         p_copy = p.copy()
         for length, shape in zip(self.shape_len_list, self.shape_list):
             p_chunk = p_copy[:length]
-            p_chunk.astype(np.float64)  # nem biztos hogy kell
+            p_chunk.astype(np.float32)  # nem biztos hogy kell
             p_copy = p_copy[length:]  # 0 hosszúságú vektort is visszaadja de nem baj elvileg
             assign_vector.append(np.reshape(p_chunk, shape))
         return assign_vector
@@ -69,11 +69,6 @@ class BP_ANN:
     def assign_params(self, dna):
         for assign_op, val in zip(self.assign_list, dna):
             self.model.session.run(assign_op, feed_dict={self.assign_val_ph: val})
-
-
-        v_l = tflearn.variables.get_all_trainable_variable()
-        for act_v, value in zip(v_l, dna):
-            tflearn.variables.set_value(act_v, value, session=self.model.session)
 
     def back_t_fit(self):
         pred_move = self.model.predict(self.x_valid)
@@ -106,22 +101,8 @@ class BP_ANN:
 
             self.assign_params(assign_vector)
 
-            # trainable_vars_op_b = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-            # trainable_vars_b = self.model.session.run(trainable_vars_op_b)
-            # for i in trainable_vars_b:
-            #     print(i)
-            # sleep(2)
-            # print("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
-
             self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
                            batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
-
-            # trainable_vars_op_b = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-            # trainable_vars_b = self.model.session.run(trainable_vars_op_b)
-            # for i in trainable_vars_b:
-            #     print(i)
-            # sleep(2)
-            # print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
             # fit = self.back_t_fit()
             # fitness_values.append(fit)
@@ -135,7 +116,7 @@ class BP_ANN:
         self.assign_params(assign_vector)
 
         # self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-        #                batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+        #                batch_size=self.b_size, show_metric=False, snapshot_epoch=False)  # , callbacks=self.LFcb)
 
         # fitness_val = self.LFcb.fit_val
         fitness_val = 1 / self.back_t_fit()

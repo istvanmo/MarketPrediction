@@ -16,22 +16,25 @@ def OBV(c_p_d, v_d):
 
             obv_t = obv_list[i-1] + theta * v_d[i]
             obv_list.append(obv_t)
+    # szerintem ez jó
     return obv_list
 
 def MAn(c_p_d, n):
     man_list = []
     c_p_d = np.array(c_p_d)
     data_len = len(c_p_d)
-    for i in range(n, data_len):
+    for i in range(n, data_len+1):
         man_t = np.sum(c_p_d[i-n:i]) / n
         man_list.append(man_t)
+    # szerintem ez jó
     return man_list
 
 def BIAS6(c_p_d):
     ma6 = np.array(MAn(c_p_d, 6))
     len_ma6 = len(ma6)
     sh_c_p_d = np.array(c_p_d[-len_ma6:])
-    bias6_list = ((sh_c_p_d - ma6) / ma6) * 100
+    bias6_list = ((sh_c_p_d - ma6) / ma6) * 100 # a 100-zal való szorzás szerintem felesleges a későbbi normalizálás miatt
+    # szerintem ez jó
     return bias6_list
 
 def PSY12(c_p_d):
@@ -39,10 +42,13 @@ def PSY12(c_p_d):
     f_c_p_d = np.array(c_p_d[1:])
     n_c_p_d = np.array(c_p_d[:-1])
     move = f_c_p_d - n_c_p_d
-    for i in range(11, len(move)):
-        window = move[i-11: i]
-        psy12 = len([x for x in window if x > 0])
+    move_reverse = np.flip(move, -1)
+    for i in range(len(move)-11):
+        window = move_reverse[i: i+12]
+        psy12 = len([x for x in window if x >= 0])
         psy12_list.append(psy12)
+    psy12_list.reverse()
+    # szerintem ez jó
     return psy12_list
 
 def ASYn(c_p_d, n):
@@ -132,4 +138,7 @@ def train_valid_data(validation_rate):
     cp, v, d = get_data()
     x_train, y_train, x_valid, y_valid = features_data(cp, v, validation_rate)
     x_train, y_train = randomize(x_train, y_train)
+    print(y_valid[-15:])
     return x_train, y_train, x_valid, y_valid, cp
+
+train_valid_data(0.9)

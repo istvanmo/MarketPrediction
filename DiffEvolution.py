@@ -5,6 +5,7 @@
 #   August, 2017
 #
 # ------------------------------------------------------------------------------+
+# Modified version
 
 # --- IMPORT DEPENDENCIES ------------------------------------------------------+
 
@@ -12,19 +13,6 @@ import random
 import ANN as ann
 import numpy as np
 
-# --- EXAMPLE COST FUNCTIONS ---------------------------------------------------+
-
-def func1(x):
-    # Sphere function, use any bounds, f(0,...,0)=0
-    return sum([x[i] ** 2 for i in range(len(x))])
-
-
-def func2(x):
-    # Beale's function, use bounds=[(-4.5, 4.5),(-4.5, 4.5)], f(3,0.5)=0.
-    term1 = (1.500 - x[0] + x[0] * x[1]) ** 2
-    term2 = (2.250 - x[0] + x[0] * x[1] ** 2) ** 2
-    term3 = (2.625 - x[0] + x[0] * x[1] ** 3) ** 2
-    return term1 + term2 + term3
 
 # GANYÉ
 f_layer_num = 10
@@ -32,8 +20,7 @@ l_rate = 0.0000001
 momentum = 0.4
 n_epoch = 1
 batch_size = 1024
-valid_rate = 0.99
-cost_func = func1  # Cost function
+valid_rate = 0.9
 dna_size = 9 * f_layer_num + f_layer_num + f_layer_num + 1
 
 bp = ann.BP_ANN(f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate)
@@ -64,7 +51,7 @@ def ensure_bounds(vec, bounds):
 
 # --- MAIN ---------------------------------------------------------------------+
 
-def main(cost_func, bounds, popsize, mutate, recombination, maxiter):
+def main(bounds, popsize, mutate, recombination, maxiter):
     # --- INITIALIZE A POPULATION (step #1) ----------------+
 
     population = []
@@ -119,7 +106,6 @@ def main(cost_func, bounds, popsize, mutate, recombination, maxiter):
             # általam eleje
             v_trial_np_array = np.ravel(np.array(v_trial))
             x_t_np_array = np.ravel(np.array(x_t))
-
             # általam vége
             score_trial = bp.train_one(v_trial_np_array)
             score_target = bp.train_one(x_t_np_array)
@@ -149,13 +135,13 @@ def main(cost_func, bounds, popsize, mutate, recombination, maxiter):
 # --- CONSTANTS ----------------------------------------------------------------+
 
 bounds = [(-1, 1)] * dna_size # Bounds [(x1_min, x1_max), (x2_min, x2_max),...]
-popsize = 64  # Population size, must be >= 4
+popsize = 128  # Population size, must be >= 4
 mutate = 0.5  # Mutation factor [0,2]
 recombination = 0.7  # Recombination rate [0,1]
-maxiter = 150  # Max number of generations (maxiter)
+maxiter = 600  # Max number of generations (maxiter)
 
 # --- RUN ----------------------------------------------------------------------+
 
-main(cost_func, bounds, popsize, mutate, recombination, maxiter)
+main(bounds, popsize, mutate, recombination, maxiter)
 
 # --- END ----------------------------------------------------------------------+
