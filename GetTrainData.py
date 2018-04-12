@@ -1,5 +1,7 @@
 import numpy as np
 from GetIndexData import get_data
+from skimage.util.shape import view_as_windows
+
 
 def OBV(c_p_d, v_d):
     obv_list = []
@@ -19,6 +21,7 @@ def OBV(c_p_d, v_d):
     # szerintem ez jó
     return obv_list
 
+
 def MAn(c_p_d, n):
     man_list = []
     c_p_d = np.array(c_p_d)
@@ -29,6 +32,7 @@ def MAn(c_p_d, n):
     # szerintem ez jó
     return man_list
 
+
 def BIAS6(c_p_d):
     ma6 = np.array(MAn(c_p_d, 6))
     len_ma6 = len(ma6)
@@ -36,6 +40,7 @@ def BIAS6(c_p_d):
     bias6_list = ((sh_c_p_d - ma6) / ma6) * 100 # a 100-zal való szorzás szerintem felesleges a későbbi normalizálás miatt
     # szerintem ez jó
     return bias6_list
+
 
 def PSY12(c_p_d):
     psy12_list = []
@@ -45,25 +50,27 @@ def PSY12(c_p_d):
     move_reverse = np.flip(move, -1)
     for i in range(len(move)-11):
         window = move_reverse[i: i+12]
-        psy12 = len([x for x in window if x >= 0])
+        psy12 = len([x for x in window if x > 0])
         psy12_list.append(psy12)
     psy12_list.reverse()
     # szerintem ez jó
     return psy12_list
 
+
 def ASYn(c_p_d, n):
     asy_list = []
-    f_c_p_d = np.array(c_p_d[1:])
-    n_c_p_d = np.array(c_p_d[:-1])
-    ln_f_c = np.log(f_c_p_d)
-    ln_n_c = np.log(n_c_p_d)
-    ret = ln_f_c - ln_n_c
-    sy = ret * 100
-    for i in range(n, len(ln_f_c)):
-        window = sy[i-n: i]
-        asy = np.mean(window)
+    window_list = view_as_windows(np.array(c_p_d), n+1)
+    ln_window_list = np.log(window_list)
+    for ln_win in ln_window_list:
+        f_ln_win = ln_win[1:]
+        n_ln_win = ln_win[:-1]
+        sy = f_ln_win - n_ln_win
+        sy_100 = sy * 100
+        asy = np.mean(sy_100)
         asy_list.append(asy)
+    # ez szerintem jó
     return asy_list
+
 
 def normal_data(d):
     min_value = np.min(d)
@@ -72,7 +79,8 @@ def normal_data(d):
     for val in d:
         norm_val = (val - min_value) / (max_value - min_value)
         n_vec.append(norm_val)
-    return  np.array(n_vec)
+    return np.array(n_vec)
+
 
 def features_data(cp, v, valid_rat):
     f_c_p_d = np.array(cp[1:])
@@ -125,8 +133,8 @@ def features_data(cp, v, valid_rat):
     y_train = y_data[0: split_index]
     y_valid = y_data[split_index:]
 
-    # return x_train, np.array(y_train, dtype=np.float64), x_valid, np.array(y_valid, dtype=np.float64)
     return x_train, y_train, x_valid, y_valid
+
 
 def randomize(a, b):
     permutation = np.random.permutation(a.shape[0])
@@ -134,11 +142,26 @@ def randomize(a, b):
     shuffled_b = b[permutation]
     return shuffled_a, shuffled_b
 
+
 def train_valid_data(validation_rate):
     cp, v, d = get_data()
+
+    # f_c_p_d = np.array(cp[1:])
+    # n_c_p_d = np.array(cp[:-1])
+    # move = f_c_p_d - n_c_p_d
+    # up = len([x for x in move if x > 0])
+    # down = len(cp) - up
+    # print("UP: ", up)
+    # print("DOWN: ", down)
+
     x_train, y_train, x_valid, y_valid = features_data(cp, v, validation_rate)
     x_train, y_train = randomize(x_train, y_train)
-    print(y_valid[-15:])
+
+    # up = len([x for x in y_valid if x > 0])
+    # down = len(y_valid) - up
+    # print("UP: ", up)
+    # print("DOWN: ", down)
+
     return x_train, y_train, x_valid, y_valid, cp
 
-train_valid_data(0.9)
+# train_valid_data(0.6)

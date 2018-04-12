@@ -11,7 +11,7 @@ class LossFitCallback(tflearn.callbacks.Callback):
 
     def on_train_end(self, training_state):
         loss = training_state.global_loss
-        self.fit_val = 1 / loss
+        self.fit_val = loss
 
 class BP_ANN:
     def __init__(self, f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate):
@@ -26,13 +26,13 @@ class BP_ANN:
 
         # bulid the tf graph
         self.net = tflearn.input_data(shape=[None, 1, 9])
-        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='tanh')
+        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu')
         self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid')
         self.opt = tflearn.optimizers.Adam(learning_rate=self.l_rate, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False,
                                       name='Adam')
-        # self.opt = tflearn.optimizers.Nesterov(learning_rate=self.l_rate, momentum=self.momentum, lr_decay=0.95, decay_step=100,
+        # self.opt = tflearn.optimizers.Nesterov(learning_rate=self.l_rate, momentum=self.momentum, lr_decay=0.9, decay_step=100,
         #                                       staircase=False, use_locking=False, name='Nesterov')
-        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")
+        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")  # loss='binary_crossentropy'
         self.model = tflearn.DNN(self.net, tensorboard_verbose=0)
 
         # extract the shapes of the variables and create assign op-s
@@ -88,7 +88,8 @@ class BP_ANN:
             dis = np.abs(re - ann)
             if dis < 0.5:
                 same_counter += 1
-        return same_counter / len(pred_move)
+
+        return len(y_backtest) - same_counter
 
     def train_all(self, pop):
         fitness_values = []
@@ -110,16 +111,18 @@ class BP_ANN:
 
         return fitness_values
 
-    def train_one(self, indiv):
+    def train_one(self, indiv, is_bp):
         assign_vector = self.create_assign_vector(indiv)
 
         self.assign_params(assign_vector)
 
-        # self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-        #                batch_size=self.b_size, show_metric=False, snapshot_epoch=False)  # , callbacks=self.LFcb)
+        if is_bp:
+            self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
+                           batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
 
-        # fitness_val = self.LFcb.fit_val
-        fitness_val = 1 / self.back_t_fit()
+            fitness_val = self.LFcb.fit_val
+        else:
+            fitness_val = self.back_t_fit()
         return fitness_val
 
 """def mean_absolute(y_pred, y_true):

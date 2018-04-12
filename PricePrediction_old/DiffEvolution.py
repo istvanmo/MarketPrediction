@@ -16,11 +16,11 @@ import numpy as np
 
 # GANYÉ
 f_layer_num = 10
-l_rate = 0.0000001
+l_rate = 0.001
 momentum = 0.4
-n_epoch = 1
-batch_size = 1024
-valid_rate = 0.9
+n_epoch = 10
+batch_size = 128
+valid_rate = 0.1717
 dna_size = 9 * f_layer_num + f_layer_num + f_layer_num + 1
 
 bp = ann.BP_ANN(f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate)
@@ -107,8 +107,8 @@ def main(bounds, popsize, mutate, recombination, maxiter):
             v_trial_np_array = np.ravel(np.array(v_trial))
             x_t_np_array = np.ravel(np.array(x_t))
             # általam vége
-            score_trial = bp.train_one(v_trial_np_array)
-            score_target = bp.train_one(x_t_np_array)
+            score_trial = bp.train_one(v_trial_np_array, False)
+            score_target = bp.train_one(x_t_np_array, False)
 
             if score_trial < score_target:
                 population[j] = v_trial
@@ -134,11 +134,11 @@ def main(bounds, popsize, mutate, recombination, maxiter):
 
 # --- CONSTANTS ----------------------------------------------------------------+
 
-bounds = [(-1, 1)] * dna_size # Bounds [(x1_min, x1_max), (x2_min, x2_max),...]
-popsize = 128  # Population size, must be >= 4
-mutate = 0.5  # Mutation factor [0,2]
+bounds = [(-0.5, 0.5)] * dna_size # Bounds [(x1_min, x1_max), (x2_min, x2_max),...]
+popsize = 100  # Population size, must be >= 4
+mutate = 0.8  # Mutation factor [0,2]
 recombination = 0.7  # Recombination rate [0,1]
-maxiter = 600  # Max number of generations (maxiter)
+maxiter = 1000  # Max number of generations (maxiter)
 
 # --- RUN ----------------------------------------------------------------------+
 

@@ -1,8 +1,5 @@
-import GeneticAlgorithm as genalg
 import ANN as ann
-import numpy as np
-from time import sleep
-
+from PricePrediction_old import GeneticAlgorithm as genalg
 
 # BP-ANN
 f_layer_num = 10

@@ -36,8 +36,8 @@ def get_data():
                 else:
                     volumes.append(volumes[-1])
 
-    print("close prices: ", close_prices[-15:])
-    print("volumes: ", volumes[-15:])
-    print("dates: ", dates[-15:])
+    # print("close prices: ", close_prices[-15:])
+    # print("volumes: ", volumes[-15:])
+    # print("dates: ", dates[-15:])
 
     return close_prices, volumes, dates
