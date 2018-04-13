@@ -14,7 +14,7 @@ class LossFitCallback(tflearn.callbacks.Callback):
         self.fit_val = loss
 
 class BP_ANN:
-    def __init__(self, f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate):
+    def __init__(self, f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate, do, opt="adam"):
         # shape of the init weights
         # (9,10); (10,); (10,1); (10,)
         self.f_layer_num = f_layer_num
@@ -26,13 +26,22 @@ class BP_ANN:
 
         # bulid the tf graph
         self.net = tflearn.input_data(shape=[None, 1, 9])
-        self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu')
+        if do:
+            self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu', regularizer="L2")
+            self.net = tflearn.dropout(self.net, 0.7, noise_shape=None, name='Dropout')
+        else:
+            self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu')
         self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid')
-        self.opt = tflearn.optimizers.Adam(learning_rate=self.l_rate, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False,
-                                      name='Adam')
-        # self.opt = tflearn.optimizers.Nesterov(learning_rate=self.l_rate, momentum=self.momentum, lr_decay=0.9, decay_step=100,
-        #                                       staircase=False, use_locking=False, name='Nesterov')
-        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")  # loss='binary_crossentropy'
+        if opt == "momentum":
+            self.opt = tflearn.optimizers.Momentum(learning_rate=0.001, momentum=0.9, lr_decay=0.95, decay_step=100,
+                                                   staircase=False, use_locking=False, name='Momentum')
+        elif opt == "nesterov":
+            self.opt = tflearn.optimizers.Nesterov(learning_rate=self.l_rate, momentum=self.momentum, lr_decay=0.95,
+                                                   decay_step=100, staircase=False, use_locking=False, name='Nesterov')
+        else:
+            self.opt = tflearn.optimizers.Adam(learning_rate=self.l_rate, beta1=0.9, beta2=0.999, epsilon=1e-08,
+                                               use_locking=False, name='Adam')
+        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")
         self.model = tflearn.DNN(self.net, tensorboard_verbose=0)
 
         # extract the shapes of the variables and create assign op-s
@@ -112,17 +121,34 @@ class BP_ANN:
         return fitness_values
 
     def train_one(self, indiv, is_bp):
-        assign_vector = self.create_assign_vector(indiv)
-
-        self.assign_params(assign_vector)
-
-        if is_bp:
-            self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
+        fitness_val = None
+        # Only backpropagation
+        if indiv is None and is_bp is True:
+            print("---- ONLY BACKPROPAGATION ----")
+            sleep(2)
+            self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch,
+                           validation_set=(self.x_valid, self.y_valid),
                            batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
 
             fitness_val = self.LFcb.fit_val
-        else:
+
+        # Full
+        if indiv is not None and is_bp is True:
+            print("---- FULL TRAINING ----")
+            sleep(2)
+            assign_vector = self.create_assign_vector(indiv)
+            self.assign_params(assign_vector)
+            self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch,
+                           validation_set=(self.x_valid, self.y_valid),
+                           batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
+            fitness_val = self.LFcb.fit_val
+
+        # Only Differential Evolution
+        if indiv is not None and is_bp is False:
+            print("---- ONLY DIFFERENTIAL EVOLUTION ----")
+            sleep(2)
             fitness_val = self.back_t_fit()
+
         return fitness_val
 
 """def mean_absolute(y_pred, y_true):
