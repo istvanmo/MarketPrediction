@@ -30,6 +30,7 @@ def MAn(c_p_d, n):
         man_t = np.sum(c_p_d[i-n:i]) / n
         man_list.append(man_t)
     # szerintem ez jó
+    # print(man_list[-15:])
     return man_list
 
 
@@ -68,6 +69,7 @@ def ASYn(c_p_d, n):
         sy_100 = sy * 100
         asy = np.mean(sy_100)
         asy_list.append(asy)
+    # print(asy_list[-5:])
     # ez szerintem jó
     return asy_list
 
@@ -123,6 +125,8 @@ def features_data(cp, v, valid_rat):
     x_data = normalized_data.T
 
     y_data = y_data[-min_len:]
+    # print(len(y_data))
+    # print(np.count_nonzero(y_data))
 
     # split data
     split_index = int(len(x_data) * (1 - valid_rat))
@@ -136,7 +140,7 @@ def features_data(cp, v, valid_rat):
     return x_train, y_train, x_valid, y_valid
 
 
-def randomize(a, b):
+def _randomize(a, b):
     permutation = np.random.permutation(a.shape[0])
     shuffled_a = a[permutation]
     shuffled_b = b[permutation]
@@ -155,13 +159,13 @@ def train_valid_data(validation_rate):
     # print("DOWN: ", down)
 
     x_train, y_train, x_valid, y_valid = features_data(cp, v, validation_rate)
-    x_train, y_train = randomize(x_train, y_train)
+    x_train, y_train = _randomize(x_train, y_train)
 
     # up = len([x for x in y_valid if x > 0])
     # down = len(y_valid) - up
     # print("UP: ", up)
     # print("DOWN: ", down)
-
+    # print(y_valid[-15:])
     return x_train, y_train, x_valid, y_valid, cp
 
 # train_valid_data(0.6)

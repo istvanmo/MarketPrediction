@@ -28,7 +28,7 @@ class BP_ANN:
         self.net = tflearn.input_data(shape=[None, 1, 9])
         if do:
             self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu', regularizer="L2")
-            self.net = tflearn.dropout(self.net, 0.7, noise_shape=None, name='Dropout')
+            # self.net = tflearn.dropout(self.net, 0.9, noise_shape=None, name='Dropout')
         else:
             self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu')
         self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid')
@@ -100,32 +100,13 @@ class BP_ANN:
 
         return len(y_backtest) - same_counter
 
-    def train_all(self, pop):
-        fitness_values = []
-        dna_num = 0
-        for p in pop:
-            dna_num += 1
-            print("A populácio ennyiedik tagja: ", dna_num)
-
-            assign_vector = self.create_assign_vector(p)
-
-            self.assign_params(assign_vector)
-
-            self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-                           batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
-
-            # fit = self.back_t_fit()
-            # fitness_values.append(fit)
-            fitness_values.append(self.LFcb.fit_val)
-
-        return fitness_values
-
     def train_one(self, indiv, is_bp):
         fitness_val = None
         # Only backpropagation
         if indiv is None and is_bp is True:
             print("---- ONLY BACKPROPAGATION ----")
             sleep(2)
+            # itt nem kell indiv a tflearn saját inicializálása tanul
             self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch,
                            validation_set=(self.x_valid, self.y_valid),
                            batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
@@ -134,19 +115,18 @@ class BP_ANN:
 
         # Full
         if indiv is not None and is_bp is True:
-            print("---- FULL TRAINING ----")
-            sleep(2)
             assign_vector = self.create_assign_vector(indiv)
             self.assign_params(assign_vector)
             self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch,
                            validation_set=(self.x_valid, self.y_valid),
-                           batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
+                           batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+
             fitness_val = self.LFcb.fit_val
 
         # Only Differential Evolution
         if indiv is not None and is_bp is False:
-            print("---- ONLY DIFFERENTIAL EVOLUTION ----")
-            sleep(2)
+            assign_vector = self.create_assign_vector(indiv)
+            self.assign_params(assign_vector)
             fitness_val = self.back_t_fit()
 
         return fitness_val
@@ -155,4 +135,21 @@ class BP_ANN:
     with tf.name_scope("MeanAbsoluteError"):
         abs_diff = tf.abs(y_pred - y_true)
         mae = tf.reduce_mean(abs_diff)
-    return mae"""
+    return mae
+    
+    def train_all(self, pop):
+    fitness_values = []
+    dna_num = 0
+    for p in pop:
+        dna_num += 1
+        print("A populácio ennyiedik tagja: ", dna_num)
+        assign_vector = self.create_assign_vector(p)
+        self.assign_params(assign_vector)
+        self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
+                       batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
+        # fit = self.back_t_fit()
+        # fitness_values.append(fit)
+        fitness_values.append(self.LFcb.fit_val)
+        return fitness_values
+    
+    """
