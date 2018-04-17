@@ -31,7 +31,8 @@ class BP_ANN:
             # self.net = tflearn.dropout(self.net, 0.9, noise_shape=None, name='Dropout')
         else:
             self.net = tflearn.fully_connected(self.net, self.f_layer_num, activation='relu')
-        self.net = tflearn.fully_connected(self.net, 1, activation='sigmoid')
+        self.net = tflearn.fully_connected(self.net, 2, activation='softmax')
+
         if opt == "momentum":
             self.opt = tflearn.optimizers.Momentum(learning_rate=0.001, momentum=0.9, lr_decay=0.95, decay_step=100,
                                                    staircase=False, use_locking=False, name='Momentum')
@@ -41,8 +42,9 @@ class BP_ANN:
         else:
             self.opt = tflearn.optimizers.Adam(learning_rate=self.l_rate, beta1=0.9, beta2=0.999, epsilon=1e-08,
                                                use_locking=False, name='Adam')
-        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='mean_square', name="output")
-        self.model = tflearn.DNN(self.net, tensorboard_verbose=0)
+
+        self.net = tflearn.regression(self.net, optimizer=self.opt, loss='categorical_crossentropy', name="output")
+        self.model = tflearn.DNN(self.net, tensorboard_verbose=6)
 
         # extract the shapes of the variables and create assign op-s
 
@@ -72,6 +74,8 @@ class BP_ANN:
             p_chunk = p_copy[:length]
             p_chunk.astype(np.float32)  # nem biztos hogy kell
             p_copy = p_copy[length:]  # 0 hosszúságú vektort is visszaadja de nem baj elvileg
+            if len(p_chunk) == 0:
+                break
             assign_vector.append(np.reshape(p_chunk, shape))
         return assign_vector
 
@@ -79,26 +83,18 @@ class BP_ANN:
         for assign_op, val in zip(self.assign_list, dna):
             self.model.session.run(assign_op, feed_dict={self.assign_val_ph: val})
 
-    def back_t_fit(self):
+    def back_t_fit(self, indiv):
+        assign_vector = self.create_assign_vector(indiv)
+        self.assign_params(assign_vector)
         pred_move = self.model.predict(self.x_valid)
-        f_c_p = np.array(self.cp[1:])
-        n_c_p = np.array(self.cp[:-1])
-        real_move_all = f_c_p - n_c_p
-        real_move = real_move_all[-len(pred_move):]
-        y_backtest = []
-        for m in real_move:
-            if m > 0:
-                y_backtest.append(1)
-            else:
-                y_backtest.append(0)
 
-        same_counter = 0
-        for re, ann in zip(y_backtest, pred_move):
-            dis = np.abs(re - ann)
-            if dis < 0.5:
-                same_counter += 1
+        hit_counter = 0
+        for i in range(len(pred_move)):
+            choice = np.random.choice((0, 1), 1, p=pred_move[i])
+            if choice[0] == self.y_valid[i][1]:
+                hit_counter += 1
 
-        return len(y_backtest) - same_counter
+        return len(self.x_valid) - hit_counter # gyakorlatilag a hibák száma -> ezt kell 0-ra vinni
 
     def train_one(self, indiv, is_bp):
         fitness_val = None
@@ -109,7 +105,7 @@ class BP_ANN:
             # itt nem kell indiv a tflearn saját inicializálása tanul
             self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch,
                            validation_set=(self.x_valid, self.y_valid),
-                           batch_size=self.b_size, show_metric=True, snapshot_epoch=False, callbacks=self.LFcb)
+                           batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
 
             fitness_val = self.LFcb.fit_val
 
@@ -125,9 +121,9 @@ class BP_ANN:
 
         # Only Differential Evolution
         if indiv is not None and is_bp is False:
-            assign_vector = self.create_assign_vector(indiv)
-            self.assign_params(assign_vector)
-            fitness_val = self.back_t_fit()
+            # assign_vector = self.create_assign_vector(indiv)
+            # self.assign_params(assign_vector)
+            fitness_val = self.back_t_fit(indiv)
 
         return fitness_val
 

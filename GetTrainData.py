@@ -140,32 +140,32 @@ def features_data(cp, v, valid_rat):
     return x_train, y_train, x_valid, y_valid
 
 
-def _randomize(a, b):
-    permutation = np.random.permutation(a.shape[0])
-    shuffled_a = a[permutation]
-    shuffled_b = b[permutation]
-    return shuffled_a, shuffled_b
+# def _randomize(a, b):
+#     permutation = np.random.permutation(a.shape[0])
+#     shuffled_a = a[permutation]
+#     shuffled_b = b[permutation]
+#     return shuffled_a, shuffled_b
 
 
 def train_valid_data(validation_rate):
     cp, v, d = get_data()
 
-    # f_c_p_d = np.array(cp[1:])
-    # n_c_p_d = np.array(cp[:-1])
-    # move = f_c_p_d - n_c_p_d
-    # up = len([x for x in move if x > 0])
-    # down = len(cp) - up
-    # print("UP: ", up)
-    # print("DOWN: ", down)
-
     x_train, y_train, x_valid, y_valid = features_data(cp, v, validation_rate)
-    x_train, y_train = _randomize(x_train, y_train)
 
-    # up = len([x for x in y_valid if x > 0])
-    # down = len(y_valid) - up
-    # print("UP: ", up)
-    # print("DOWN: ", down)
-    # print(y_valid[-15:])
-    return x_train, y_train, x_valid, y_valid, cp
+    # SOFTMAX ÁTALAKÍTÁS ----------------------------------
+    y_train_softm = []
+    y_valid_softm = []
+    for y_t in y_train:
+        if y_t == 1:
+            y_train_softm.append([0, 1])
+        else:
+            y_train_softm.append([1, 0])
+    for y_v in y_valid:
+        if y_v == 1:
+            y_valid_softm.append([0, 1])
+        else:
+            y_valid_softm.append([1, 0])
+    # -----------------------------------------------------
+    return x_train, y_train_softm, x_valid, y_valid_softm, cp
 
 # train_valid_data(0.6)
