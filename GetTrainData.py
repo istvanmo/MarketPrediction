@@ -166,6 +166,6 @@ def train_valid_data(validation_rate):
         else:
             y_valid_softm.append([1, 0])
     # -----------------------------------------------------
-    return x_train, y_train_softm, x_valid, y_valid_softm, cp
+    return np.asarray(x_train), np.asarray(y_train_softm), np.asarray(x_valid), np.asarray(y_valid_softm), cp
 
 # train_valid_data(0.6)
