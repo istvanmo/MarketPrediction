@@ -1,5 +1,4 @@
 import csv
-import matplotlib.pyplot as plt
 
 def get_data():
     close_prices = []

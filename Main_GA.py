@@ -3,23 +3,24 @@ import numpy as np
 import ANN as ann
 from time import sleep
 
-# Parameters
-only_bp = True
-is_bp = False  # If only_bf False and is_bp is True -> DE + BP
+# Training options
+only_bp = False
+is_bp = True  # If only_bf False and is_bp is True -> DE + BP
 
-h_layer_num = 20
-l_rate = 0.0003
+# Parameters
+h_layer_num = 10
+l_rate = 0.1
 momentum = 0.4
-n_epoch = 75000
+n_epoch = 7000
 batch_size = 64
-valid_rate = 0.1717  # 0.1717 if BP True
+test_rate = 0.214  # 0.1717 if BP True
 dna_size = 9 * h_layer_num + h_layer_num + h_layer_num * 2 + 2
 
 # [(9, 10), (10,), (10, 2), (2,)]
 # bounds = [(-0.1, 0.1)] * (9 * h_layer_num) + [(-0.5, 0.5)] * h_layer_num + [(-0.1, 0.1)] * (2 * h_layer_num) + [(-0.5, 0.5)] * 2
 # bounds = [(-1, 1)] * dna_size
 
-bp = ann.BP_ANN(h_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate, opt="Adam", do=only_bp)
+bp = ann.BP_ANN(h_layer_num, l_rate, momentum, n_epoch, batch_size, test_rate, opt="momentum", do=only_bp)
 
 if only_bp:
     fit = bp.train_one(None, is_bp=only_bp)
@@ -38,8 +39,8 @@ else:
 
     gen_alg = RealGA(BP_fit_fun, optim="min", cross_prob=0.7, mut_prob=0.2)
     # gen_alg.init_population(bounds)
-    gen_alg.init_random_population(15, dna_size, (-0.3, 0.3))
-    gen_alg.run(500)
+    gen_alg.init_random_population(5, dna_size, (-0.2, 0.2))
+    gen_alg.run(5)
 
     best_indiv, score = gen_alg.best_solution
     print("Number of test points: ", len(bp.y_test))

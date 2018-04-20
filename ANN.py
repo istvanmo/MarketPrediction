@@ -1,26 +1,3 @@
-"""def mean_absolute(y_pred, y_true):
-    with tf.name_scope("MeanAbsoluteError"):
-        abs_diff = tf.abs(y_pred - y_true)
-        mae = tf.reduce_mean(abs_diff)
-    return mae
-    
-    def train_all(self, pop):
-    fitness_values = []
-    dna_num = 0
-    for p in pop:
-        dna_num += 1
-        print("A populácio ennyiedik tagja: ", dna_num)
-        assign_vector = self.create_assign_vector(p)
-        self.assign_params(assign_vector)
-        self.model.fit(self.x_train, self.y_train, n_epoch=self.n_epoch, validation_set=(self.x_valid, self.y_valid),
-                       batch_size=self.b_size, show_metric=False, snapshot_epoch=False, callbacks=self.LFcb)
-        # fit = self.back_t_fit()
-        # fitness_values.append(fit)
-        fitness_values.append(self.LFcb.fit_val)
-        return fitness_values
-    
-    """
-
 import numpy as np
 from time import sleep, time
 import keras
@@ -28,9 +5,10 @@ from GetTrainData import train_valid_data
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.layers.normalization import BatchNormalization
+from keras.optimizers import SGD, Adam
 
 class BP_ANN:
-    def __init__(self, h_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate, do, opt="adam"):
+    def __init__(self, h_layer_num, l_rate, momentum, n_epoch, batch_size, test_rate, do, opt="adam"):
         # shape of the init weights
         # (9,10); (10,); (10,1); (10,)
         self.h_layer_num = h_layer_num
@@ -38,7 +16,7 @@ class BP_ANN:
         self.momentum = momentum
         self.n_epoch = n_epoch
         self.b_size = batch_size
-        self.x_train, self.y_train_h, self.x_test, self.y_test_h, self.cp = train_valid_data(valid_rate)
+        self.x_train, self.y_train_h, self.x_test, self.y_test_h, self.cp = train_valid_data(test_rate)
         # y needs to be reshaped
         self.y_train = np.reshape(self.y_train_h, (-1, 1, 2))
         self.y_test = np.reshape(self.y_test_h, (-1, 1, 2))
@@ -47,14 +25,15 @@ class BP_ANN:
         self.model = Sequential()
 
         # input + hidden layer
-        h_layer = Dense(self.h_layer_num, input_shape=(1, 9), name="Hidden_layer")
+        h_layer = Dense(self.h_layer_num, input_shape=(1, 9), kernel_initializer="glorot_normal",
+                        name="Hidden_layer")
         h_l_batch_norm = BatchNormalization()
         h_l_activation = Activation("relu")
         if do:
-            do_layer = Dropout(0.4)
+            do_layer = Dropout(0.2)
 
         # output layer
-        o_layer = Dense(2, name="Output_layer")
+        o_layer = Dense(2, kernel_initializer="glorot_normal", name="Output_layer")
         o_l_batch_norm = BatchNormalization()
         o_l_activation = Activation("softmax")
 
@@ -68,7 +47,13 @@ class BP_ANN:
         self.model.add(o_l_batch_norm)
         self.model.add(o_l_activation)
 
-        self.model.compile(loss='mean_squared_error', optimizer=opt, metrics=['accuracy'])
+        # optimizer
+        optimizer = Adam(lr=self.l_rate)
+        if opt == "momentum":
+            optimizer = SGD(lr=self.l_rate, momentum=self.momentum)
+
+
+        self.model.compile(loss='mean_squared_error', optimizer=optimizer, metrics=['accuracy'])
 
         # create the vector of the shapes of variables -> for the assign
         self.layer_list = [h_layer, o_layer]
@@ -143,19 +128,21 @@ class BP_ANN:
             print("Wrong: ", wrong[0])
             print("Hit ratio: ", (len(self.y_test) - wrong[0]) / len(self.y_test))
 
-            fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=128)
+            fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=self.b_size)
 
+        # TODO: Check how the BatchNorm layer works in inference. Mostly in only GA
         # Full
         if indiv is not None and is_bp is True:
             assign_vector = self.create_assign_vector(indiv, self.l_w_shape_list, self.l_w_len_list)
             self.assign_variables(self.layer_list, assign_vector)
             self.model.fit(self.x_train, self.y_train, batch_size=self.b_size, epochs=self.n_epoch)
 
-            fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=128)
+            fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=self.b_size)
 
-        # Only Differential Evolution or Genetic algorithm
+        # Only Genetic algorithm
         if indiv is not None and is_bp is False:
             # assign is in the backtest
             fitness_val = self.back_t_fit(indiv)
 
         return fitness_val
+
