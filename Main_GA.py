@@ -5,12 +5,12 @@ from time import sleep
 
 # Parameters
 only_bp = True
-is_bp = True  # If only_bf False and is_bp is True -> DE + BP
+is_bp = False  # If only_bf False and is_bp is True -> DE + BP
 
-h_layer_num = 10
-l_rate = 0.001
+h_layer_num = 20
+l_rate = 0.0003
 momentum = 0.4
-n_epoch = 100000
+n_epoch = 75000
 batch_size = 64
 valid_rate = 0.1717  # 0.1717 if BP True
 dna_size = 9 * h_layer_num + h_layer_num + h_layer_num * 2 + 2
@@ -38,11 +38,11 @@ else:
 
     gen_alg = RealGA(BP_fit_fun, optim="min", cross_prob=0.7, mut_prob=0.2)
     # gen_alg.init_population(bounds)
-    gen_alg.init_random_population(50, dna_size, (-0.5, 0.5))
-    gen_alg.run(100)
+    gen_alg.init_random_population(15, dna_size, (-0.3, 0.3))
+    gen_alg.run(500)
 
     best_indiv, score = gen_alg.best_solution
     print("Number of test points: ", len(bp.y_test))
     wrong = bp.back_t_fit(best_indiv)
-    print("Wrong: ", wrong)
-    print("Hit ratio: ", (len(bp.y_test) - wrong) / len(bp.y_test))
+    print("Wrong: ", wrong[0])
+    print("Hit ratio: ", (len(bp.y_test) - wrong[0]) / len(bp.y_test))

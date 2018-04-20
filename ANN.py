@@ -22,17 +22,18 @@
     """
 
 import numpy as np
-from time import sleep
+from time import sleep, time
 import keras
 from GetTrainData import train_valid_data
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Activation, Dropout
+from keras.layers.normalization import BatchNormalization
 
 class BP_ANN:
-    def __init__(self, f_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate, do, opt="adam"):
+    def __init__(self, h_layer_num, l_rate, momentum, n_epoch, batch_size, valid_rate, do, opt="adam"):
         # shape of the init weights
         # (9,10); (10,); (10,1); (10,)
-        self.f_layer_num = f_layer_num
+        self.h_layer_num = h_layer_num
         self.l_rate = l_rate
         self.momentum = momentum
         self.n_epoch = n_epoch
@@ -42,19 +43,35 @@ class BP_ANN:
         self.y_train = np.reshape(self.y_train_h, (-1, 1, 2))
         self.y_test = np.reshape(self.y_test_h, (-1, 1, 2))
 
-        # bulid the tf graph
+        # BUILD THE GRAPH
         self.model = Sequential()
 
-        h_layer = Dense(4, activation='relu', input_shape=(1, 9), name="Hidden_layer")
-        o_layer = Dense(2, activation='softmax', name="Output_layer")
+        # input + hidden layer
+        h_layer = Dense(self.h_layer_num, input_shape=(1, 9), name="Hidden_layer")
+        h_l_batch_norm = BatchNormalization()
+        h_l_activation = Activation("relu")
+        if do:
+            do_layer = Dropout(0.4)
 
+        # output layer
+        o_layer = Dense(2, name="Output_layer")
+        o_l_batch_norm = BatchNormalization()
+        o_l_activation = Activation("softmax")
+
+        # add layers to model
         self.model.add(h_layer)
+        self.model.add(h_l_batch_norm)
+        self.model.add(h_l_activation)
+        if do:
+            self.model.add(do_layer)
         self.model.add(o_layer)
+        self.model.add(o_l_batch_norm)
+        self.model.add(o_l_activation)
 
         self.model.compile(loss='mean_squared_error', optimizer=opt, metrics=['accuracy'])
 
+        # create the vector of the shapes of variables -> for the assign
         self.layer_list = [h_layer, o_layer]
-
         self.l_w_shape_list, self.l_w_len_list = self.variable_shapes(self.layer_list)
 
     def variable_shapes(self, layer_l):
@@ -66,9 +83,9 @@ class BP_ANN:
             l_w_len = []
             for par in w_of_layer:
                 shape = par.shape
-                len = np.prod(np.ravel(shape))
+                length = np.prod(np.ravel(shape))
                 l_w_shape.append(shape)
-                l_w_len.append(len)
+                l_w_len.append(length)
             l_w_shape_list.append(l_w_shape)
             l_w_len_list.append(l_w_len)
         return l_w_shape_list, l_w_len_list
@@ -93,8 +110,9 @@ class BP_ANN:
             lay.set_weights(assign)
 
     def back_t_fit(self, indiv):
-        assign_vector = self.create_assign_vector(indiv, self.l_w_shape_list, self.l_w_len_list)
-        self.assign_variables(self.layer_list, assign_vector)
+        if indiv is not None:
+            assign_vector = self.create_assign_vector(indiv, self.l_w_shape_list, self.l_w_len_list)
+            self.assign_variables(self.layer_list, assign_vector)
         pred_move = self.model.predict(self.x_test)
         hit_counter = 0
         for i in range(len(pred_move)):
@@ -102,7 +120,7 @@ class BP_ANN:
             if choice[0] == self.y_test[i][0][1]:
                 hit_counter += 1
 
-        return len(self.x_test) - hit_counter # gyakorlatilag a hibák száma -> ezt kell 0-ra vinni
+        return [len(self.x_test) - hit_counter] # gyakorlatilag a hibák száma -> ezt kell 0-ra vinni
 
     def train_one(self, indiv, is_bp):
         fitness_val = None
@@ -111,11 +129,19 @@ class BP_ANN:
         if indiv is None and is_bp is True:
             print("---- ONLY BACKPROPAGATION ----")
             sleep(2)
-            tbCallBack = keras.callbacks.TensorBoard(log_dir='./log_dir', histogram_freq=0, write_graph=True,
+            ti = time()
+            ti = str(int(ti))
+            l_dir = "./log_dir/ts_" + ti[-6:] + "__lr_" + str(self.l_rate) + "__h_" + str(self.h_layer_num)
+            tbCallBack = keras.callbacks.TensorBoard(log_dir=l_dir, histogram_freq=0, write_graph=True,
                                                      write_images=True)
             # itt nem kell indiv a keras saját inicializálása tanul
             self.model.fit(self.x_train, self.y_train, batch_size=self.b_size, epochs=self.n_epoch,
                            callbacks=[tbCallBack])
+
+            print("Number of test points: ", len(self.y_test))
+            wrong = self.back_t_fit(None)
+            print("Wrong: ", wrong[0])
+            print("Hit ratio: ", (len(self.y_test) - wrong[0]) / len(self.y_test))
 
             fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=128)
 
