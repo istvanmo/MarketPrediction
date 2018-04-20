@@ -18,7 +18,7 @@ Dependencies
 Usage
 -----
 
-You should run the "Main_GA.py" with the desired options to train the model.
+- You should run the "Main_GA.py" with the desired options to train the model.
     - Only Backpropagation -> "only_bp" should be True (in this case "is_bp" is irrelevant)
     - Only Genetic Algorithm -> "only_bp" should be False and "is_bp" should be False too
     - Hybrid -> "only_bp" should be False and "is_bp" should be True
