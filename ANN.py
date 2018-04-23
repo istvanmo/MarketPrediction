@@ -25,12 +25,21 @@ class BP_ANN:
         self.model = Sequential()
 
         # input + hidden layer
-        h_layer = Dense(self.h_layer_num, input_shape=(1, 9), kernel_initializer="glorot_normal",
+        h_layer = Dense(self.h_layer_num, input_shape=(1, 9), kernel_initializer="glorot_uniform",
                         name="Hidden_layer")
         h_l_batch_norm = BatchNormalization()
         h_l_activation = Activation("relu")
         if do:
-            do_layer = Dropout(0.2)
+            do_layer = Dropout(0.5)
+
+        # ONLY FOR MULTILAYER TEST -----------------------------------------------------
+        h_layer_2 = Dense(self.h_layer_num, kernel_initializer="glorot_uniform",
+                        name="Hidden_layer_2")
+        h_l_batch_norm_2 = BatchNormalization()
+        h_l_activation_2 = Activation("relu")
+        if do:
+            do_layer_2 = Dropout(0.5)
+        #-------------------------------------------------------------------------------
 
         # output layer
         o_layer = Dense(2, kernel_initializer="glorot_normal", name="Output_layer")
@@ -43,6 +52,15 @@ class BP_ANN:
         self.model.add(h_l_activation)
         if do:
             self.model.add(do_layer)
+
+        # ONLY FOR MULTILAYER TEST -----------------------------------------------------
+        self.model.add(h_layer_2)
+        self.model.add(h_l_batch_norm_2)
+        self.model.add(h_l_activation_2)
+        if do:
+            self.model.add(do_layer_2)
+        #-------------------------------------------------------------------------------
+
         self.model.add(o_layer)
         self.model.add(o_l_batch_norm)
         self.model.add(o_l_activation)
@@ -94,18 +112,33 @@ class BP_ANN:
         for lay, assign in zip(layer_list, a_vect):
             lay.set_weights(assign)
 
-    def back_t_fit(self, indiv):
+    def back_t_fit(self, indiv, for_train):
         if indiv is not None:
             assign_vector = self.create_assign_vector(indiv, self.l_w_shape_list, self.l_w_len_list)
             self.assign_variables(self.layer_list, assign_vector)
-        pred_move = self.model.predict(self.x_test)
+
+        if for_train is True:
+            X = self.x_train
+            Y = self.y_train
+        else:
+            X = self.x_test
+            Y = self.y_test
+
+        pred_move = self.model.predict(X)
         hit_counter = 0
         for i in range(len(pred_move)):
-            choice = np.random.choice((0, 1), 1, p=pred_move[i][0])
-            if choice[0] == self.y_test[i][0][1]:
+            # choice = np.random.choice((0, 1), 1, p=pred_move[i][0])
+            # if choice[0] == self.y_test[i][0][1]:
+            #     hit_counter += 1
+            # if i % 5 == 0:
+            #     print("--------------------------------------------------")
+            #     print("test: ", self.y_test[i][0], " ! pred: ", pred_move[i][0])
+            #     print("test argmax: ", np.argmax(self.y_test[i][0]), " ! pred argmax: ", np.argmax(pred_move[i][0]))
+            #     print("--------------------------------------------------")
+            if np.argmax(Y[i][0]) == np.argmax(pred_move[i][0]):
                 hit_counter += 1
 
-        return [len(self.x_test) - hit_counter] # gyakorlatilag a hibák száma -> ezt kell 0-ra vinni
+        return [hit_counter]
 
     def train_one(self, indiv, is_bp):
         fitness_val = None
@@ -124,9 +157,9 @@ class BP_ANN:
                            callbacks=[tbCallBack])
 
             print("Number of test points: ", len(self.y_test))
-            wrong = self.back_t_fit(None)
-            print("Wrong: ", wrong[0])
-            print("Hit ratio: ", (len(self.y_test) - wrong[0]) / len(self.y_test))
+            right = self.back_t_fit(None, for_train=False)
+            print("Right: ", right[0])
+            print("Hit ratio: ", right[0] / len(self.y_test))
 
             fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=self.b_size)
 
@@ -137,12 +170,12 @@ class BP_ANN:
             self.assign_variables(self.layer_list, assign_vector)
             self.model.fit(self.x_train, self.y_train, batch_size=self.b_size, epochs=self.n_epoch)
 
-            fitness_val = self.model.evaluate(self.x_test, self.y_test, batch_size=self.b_size)
+            fitness_val = self.model.evaluate(self.x_train, self.y_train, batch_size=self.b_size)
 
         # Only Genetic algorithm
         if indiv is not None and is_bp is False:
             # assign is in the backtest
-            fitness_val = self.back_t_fit(indiv)
+            fitness_val = self.back_t_fit(indiv, for_train=True)
 
         return fitness_val
 
