@@ -8,11 +8,11 @@ only_bp = True
 is_bp = False  # If only_bf False and is_bp is True -> DE + BP
 
 # Parameters
-h_layer_num = 16  # for both of the hidden layers
+h_layer_num = 32  # for both of the hidden layers
 l_rate = 0.1
 momentum = 0.4
-n_epoch = 9000
-batch_size = 32
+n_epoch = 3000
+batch_size = 16
 test_rate = 0.214  # 0.214 if BP True
 dna_size = 9 * h_layer_num + h_layer_num + h_layer_num * 2 + 2
 
@@ -37,7 +37,8 @@ else:
         fit = bp.train_one(np.array(x_ravel), is_bp=is_bp)  # is_bp=False -> only DE and the fitness is the hit ration on the validation set
         return fit[0]
 
-    gen_alg = RealGA(BP_fit_fun, optim="max", cross_prob=0.7, mut_prob=0.2)
+    ga_opt = "min" if is_bp else "max"
+    gen_alg = RealGA(BP_fit_fun, optim=ga_opt, cross_prob=0.7, mut_prob=0.2)
     # gen_alg.init_population(bounds)
     gen_alg.init_random_population(20, dna_size, (-0.5, 0.5))
     gen_alg.run(300)
